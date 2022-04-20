@@ -10,6 +10,7 @@ public class PlayerController : MonoBehaviour
     public Direction direction;
     public Vector2 axisDirection;
     public GameObject child;
+    public Camera mainCamera;
 
     public Stack<Movement> movements;
 
@@ -32,13 +33,40 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        if ((targetPosition == transform.position)
-            && Input.GetKeyDown(KeyCode.U))
+        if (targetPosition == transform.position)
         {
-            UndoMovement();
+            if (Input.GetKeyDown(KeyCode.U)
+                || Input.GetMouseButton(1)
+            ) {
+                UndoMovement();
+            }
         }
 
         axisDirection = new Vector2(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical"));
+
+        // Calculamos axisDirection a partir de un "clic" en la pantalla
+        if ((targetPosition == transform.position)
+            && Input.GetMouseButton(0)
+        ) {
+            Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+            RaycastHit[] hits = Physics.RaycastAll(ray);
+
+            foreach (RaycastHit hit in hits)
+            {
+                if (hit.transform.tag.Equals("Floor"))
+                {
+                    Vector3 diff = transform.position - hit.point;
+                    if (Mathf.Abs(diff.x) > Mathf.Abs(diff.z))
+                    {
+                        axisDirection = (diff.x > 0) ? new Vector2(-1, 0) : new Vector2(1, 0);
+                    } else
+                    {
+                        axisDirection = (diff.z > 0) ? new Vector2(0, -1) : new Vector2(0, 1);
+                    }
+                }
+            }
+        }
+
 
         if ((axisDirection != Vector2.zero)
             && (targetPosition == transform.position)
@@ -90,7 +118,7 @@ public class PlayerController : MonoBehaviour
 
     }
 
-    void SetTargetPosition(Vector3 targetPositionCandidate, Direction direction)
+    private void SetTargetPosition(Vector3 targetPositionCandidate, Direction direction)
     {
         // Validar que targetPosition no está ocupada
         GameObject gameObjectInTargetPosition = this.HasGameObject(targetPositionCandidate);
@@ -134,7 +162,7 @@ public class PlayerController : MonoBehaviour
         targetPosition = targetPositionCandidate;
     }
 
-    GameObject HasGameObject(Vector3 position)
+    private GameObject HasGameObject(Vector3 position)
     {
         Collider[] hitColliders = Physics.OverlapSphere(position, 0.1f);
         foreach (var hitCollider in hitColliders)
@@ -149,7 +177,7 @@ public class PlayerController : MonoBehaviour
         return null;
     }
 
-    Vector3 MapVector3FromDirection(Direction direction)
+    private Vector3 MapVector3FromDirection(Direction direction)
     {
         if (direction == Direction.left)
         {
